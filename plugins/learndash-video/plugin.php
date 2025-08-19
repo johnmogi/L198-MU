@@ -190,41 +190,24 @@ function inject_single_lesson_video() {
             $video_id = 'ld-video-' . md5($video_url);
             
             // Build comprehensive video HTML with multiple sources and mobile optimization
-            $video_html = '<div class="ld-video-container ld-video-responsive" id="' . $video_id . '">
+            $video_html = '<div class="ld-video-container ld-video-responsive" id="' . $video_id . '" style="width: 100%; max-width: 100%; height: auto; max-height: 75vh; margin: 0 auto 20px;">
                 <video 
                     class="ld-video-player"
+                    style="width: 100%; height: auto; max-height: 75vh; object-fit: contain; border-radius: 8px;"
                     controls 
                     preload="metadata"
                     playsinline
                     webkit-playsinline
-                    x-webkit-airplay="allow"
-                    controlslist="nodownload">';
-            
-            // Add multiple video sources with tolerant checks
-            $desktop_ok = ldv_url_exists($desktop_video);
-            $mobile_ok = (!empty($mobile_video_url) && $mobile_video_url !== $desktop_video) ? ldv_url_exists($mobile_video_url) : false;
-
-            if (!empty($mobile_video_url) && $mobile_video_url !== $desktop_video) {
-                if ($mobile_ok || ldv_is_local_url($mobile_video_url)) {
-                    // Mobile-specific source with media query
-                    $video_html .= '\n                    <source src="' . esc_url($mobile_video_url) . '" type="' . $mime_type . '" media="(max-width: 767px)">';
-                } else {
-                    echo "<!-- DEBUG: Skipping mobile source - HEAD failed and not local: {$mobile_video_url} -->\n";
-                }
-            } else {
-                echo "<!-- DEBUG: No distinct mobile source detected -->\n";
-            }
-
-            // Always include desktop sources to avoid empty <video>, even if HEAD failed (common on local)
-            if (!$desktop_ok) {
-                echo "<!-- DEBUG: Including desktop source despite failed HEAD check: {$desktop_video} -->\n";
-            }
-            $video_html .= '\n                    <source src="' . esc_url($desktop_video) . '" type="' . $mime_type . '" media="(min-width: 768px)">';
-            $video_html .= '\n                    <source src="' . esc_url($desktop_video) . '" type="' . $mime_type . '">';
-            
-            $video_html .= '\n                    <p>Your browser does not support the video tag. <a href="' . esc_url($desktop_video) . '" target="_blank">Download the video</a></p>
+                    x5-video-player-type="h5"
+                    x5-video-orientation="landscape|portrait"
+                    x5-video-player-fullscreen="true"
+                    x5-video-ignore-metadata="true"
+                    x5-video-play-inline="true">
+                    <source src="' . esc_url($desktop_video) . '" type="' . $mime_type . '" media="(min-width: 768px)">' . 
+                    (!empty($mobile_video_url) && $mobile_video_url !== $desktop_video ? '
+                    <source src="' . esc_url($mobile_video_url) . '" type="' . $mime_type . '" media="(max-width: 767px)">' : '') . '
+                    Your browser does not support the video tag.
                 </video>
-                <div class="video-loading" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px;">Loading video...</div>
             </div>';
             
             // Add comprehensive CSS for mobile optimization
@@ -247,12 +230,6 @@ function inject_single_lesson_video() {
                     background: #000;
                     outline: none;
                     border: none;
-                }
-                
-                #' . $video_id . ' .video-loading {
-                    font-family: Arial, sans-serif;
-                    font-size: 14px;
-                    z-index: 10;
                 }
                 
                 /* Desktop styles */
@@ -500,7 +477,7 @@ function inject_single_lesson_video() {
                         try { video.load(); } catch (e) { console.warn('video.load() threw', e); }
                         // Log available sources and selection
                         try {
-                            console.log('Sources:', Array.from(container.querySelectorAll('source')).map(function(s){ return s.src; }));
+                            console.log('Sources:', Array.from(video.querySelectorAll('source')).map(function(s){ return s.src; }));
                             console.log('currentSrc:', video.currentSrc);
                             console.log('video.src:', video.src);
                             console.log('canPlayType mp4:', video.canPlayType('video/mp4'));
@@ -622,9 +599,9 @@ function inject_course_accordion_videos() {
                 // Try different mobile video naming conventions
                 $mobile_patterns = [
                     // Replace .mp4 with -mobile.mp4
-                    '/\.(' . implode('|', array_keys($mime_types)) . ')(\?.*)?$/i' => '-mobile.$1$2',
+                    '/\.(' . implode('|', array_keys($mime_types)) . ')(?:\?.*)?$/i' => '-mobile.$1',
                     // Add /mobile/ before filename
-                    '/\/([^\/]+)\.(' . implode('|', array_keys($mime_types)) . ')(\?.*)?$/i' => '/mobile/$1.$2$3'
+                    '/\/([^\/]+)\.(' . implode('|', array_keys($mime_types)) . ')(?:\?.*)?$/i' => '/mobile/$1.$2'
                 ];
                 
                 foreach ($mobile_patterns as $pattern => $replacement) {
@@ -638,34 +615,53 @@ function inject_course_accordion_videos() {
                 // Generate unique ID for this video
                 $video_id = 'ld-video-accordion-' . md5($video_url);
                 
-                $video_html = '<div class="ld-video ld-video-responsive" id="' . $video_id . '" style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 8px;">
+                $video_html = '<div class="ld-video ld-video-responsive" id="' . $video_id . '" style="position: relative; width: 100%; height: auto; background-color: #000; border-radius: 8px; overflow: hidden; aspect-ratio: 16/9;">
                     <video 
                         class="ld-video-player"
-                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" 
+                        style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;"
                         controls 
-                        preload="metadata"
+                        preload="auto"
                         crossorigin="anonymous"
-                        playsinline>
-                        <source src="' . esc_url($video_url) . '" type="' . $mime_type . '" media="(min-width: 768px)">
-                        ' . (!empty($mobile_video_url) ? '<source src="' . esc_url($mobile_video_url) . '" type="' . $mime_type . '" media="(max-width: 767px)">' : '') . '
+                        playsinline
+                        webkit-playsinline
+                        x5-video-player-type="h5"
+                        x5-video-orientation="portrait"
+                        x5-video-player-fullscreen="true"
+                        x5-video-ignore-metadata="true"
+                        x5-video-play-inline="true">
+                        <source src="' . esc_url($video_url) . '" type="' . $mime_type . '" media="(min-width: 768px)">' . 
+                        (!empty($mobile_video_url) ? '
+                        <source src="' . esc_url($mobile_video_url) . '" type="' . $mime_type . '" media="(max-width: 767px)">' : '') . '
                         <source src="' . esc_url($video_url) . '" type="' . $mime_type . '">
                         Your browser does not support the video tag.
                     </video>
-                </div>
-                <style>
-                /* Mobile vertical aspect ratio for accordion videos */
-                @media (max-width: 767px) {
-                    #' . $video_id . ' {
-                        padding-bottom: 177.78% !important; /* 9:16 aspect ratio for vertical videos */
-                    }
-                }
-                /* Desktop horizontal aspect ratio for accordion videos */
-                @media (min-width: 768px) {
-                    #' . $video_id . ' {
-                        padding-bottom: 56.25% !important; /* 16:9 aspect ratio for horizontal videos */
-                    }
-                }
-                </style>';
+                    <style>
+                        /* Mobile styles */
+                        @media (max-width: 767px) {
+                            #' . $video_id . ' {
+                                aspect-ratio: unset;
+                                max-height: 100vh !important;
+                            }
+                            #' . $video_id . ' .ld-video-player checkme {
+                                position: absolute;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%);
+                                width: 100% !important;
+                                height: 100% !important;
+                                min-height: 65vh;
+                                object-fit: contain;
+                            }
+                        }
+                        /* Desktop styles */
+                        @media (min-width: 768px) {
+                            #' . $video_id . ' {
+                                max-width: 900px;
+                                margin: 0 auto 20px;
+                            }
+                        }
+                    </style>
+                </div>';
             }
             // Handle other video URLs (Vimeo, etc.) - fallback to iframe
             elseif (filter_var($video_url, FILTER_VALIDATE_URL)) {
